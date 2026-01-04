@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ufdrReport generated="2025-10-09T09:45:00Z">
+    <deviceInfo>
+        <model>Spectre-X</model>
+        <os>GrapheneOS 14</os>
+        <imei>867530901234567</imei>
+        <owner>Jane Smith</owner>
+    </deviceInfo>
+
+    <contacts>
+        <contact id="c1">
+            <name>Shady Dealer</name>
+            <phone type="mobile">+1-415-555-0156</phone>
+            <phone type="work">+1-415-555-0199</phone>
+            <email>dealer@proton.me</email>
+        </contact>
+        <contact id="c2">
+            <name>Logistics</name>
+            <phone type="mobile">+1-718-555-0182</phone>
+        </contact>
+    </contacts>
+
+    <callLog>
+        <call id="1" type="Outgoing" duration="35">
+            <caller>Device Owner</caller>
+            <callee>+1-415-555-0156</callee>
+            <timestamp>2025-10-08T18:05:10Z</timestamp>
+        </call>
+        <call id="2" type="Incoming" duration="92">
+            <caller>+1-415-555-0156</caller>
+            <callee>Device Owner</callee>
+            <timestamp>2025-10-08T20:15:25Z</timestamp>
+        </call>
+    </callLog>
+
+    <smsLog>
+        <message id="101" type="Incoming">
+            <sender>+1-415-555-0156</sender>
+            <recipient>Device Owner</recipient>
+            <timestamp>2025-10-08T22:01:00Z</timestamp>
+            <body>Is the item ready for pickup? Need to see it first. Same location as last time.</body>
+        </message>
+        <message id="102" type="Outgoing">
+            <sender>Device Owner</sender>
+            <recipient>+1-415-555-0156</recipient>
+            <timestamp>2025-10-08T22:02:30Z</timestamp>
+            <body>Ready. Sending proof now. Be at the Cubbon Park location in one hour. Cash only.</body>
+        </message>
+    </smsLog>
+
+    <mmsLog>
+        <mms id="201" type="Outgoing">
+            <sender>Device Owner</sender>
+            <recipient>+1-415-555-0156</recipient>
+            <timestamp>2025-10-08T22:03:15Z</timestamp>
+            <text>Here is the item.</text>
+            <attachment>
+                <mimeType>image/gif</mimeType>
+                <filename>item_proof.gif</filename>
+                <data encoding="base64">R0lGODlhAQABAIABAP8AAAAAACwAAAAAAQABAAACAkQBADs=</data>
+            </attachment>
+        </mms>
+    </mmsLog>
+
+    <browserHistory>
+        <visit id="v1">
+            <url>https://www.google.com/search?q=how+to+buy+untraceable+phones</url>
+            <title>how to buy untraceable phones - Google Search</title>
+            <timestamp>2025-10-08T15:20:11Z</timestamp>
+        </visit>
+        <visit id="v2">
+            <url>https://en.wikipedia.org/wiki/Cubbon_Park</url>
+            <title>Cubbon Park - Wikipedia</title>
+            <timestamp>2025-10-08T22:05:40Z</timestamp>
+        </visit>
+    </browserHistory>
+
+    <locations>
+        <point id="1" accuracy="5">
+            <latitude>12.9757</latitude>
+            <longitude>77.5971</longitude>
+            <timestamp>2025-10-08T23:00:05Z</timestamp>
+            <source>GPS</source>
+        </point>
+    </locations>
+</ufdrReport>

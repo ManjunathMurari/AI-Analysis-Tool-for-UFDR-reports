@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Forensic UFDR Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map { height: 400px; width: 100%; border-radius: 12px; border: 1px solid #30363d; }
+    </style>
+</head>
+<body class="bg-[#0b1120] text-white min-h-screen font-sans p-6">
+
+    <div id="dashboard-screen" class="w-full max-w-6xl mx-auto">
+        <div class="flex justify-between items-end mb-10 border-b border-slate-800 pb-6">
+            <div>
+                <p class="text-blue-500 text-xs font-bold uppercase tracking-widest mb-1">Case File Analysis</p>
+                <h2 class="text-3xl font-bold text-white">updated_mock_file.xml</h2>
+            </div>
+            <button onclick="location.reload()" class="text-red-500 text-xs font-bold border border-red-900/30 px-4 py-2 rounded-lg hover:bg-red-500/10 transition">TERMINATE SESSION</button>
+        </div>
+        
+        <div class="grid grid-cols-4 gap-6 mb-10">
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800"><p class="text-xs text-slate-500 uppercase mb-1">Calls</p><p class="text-4xl font-bold">2</p></div>
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800"><p class="text-xs text-slate-500 uppercase mb-1">SMS</p><p class="text-4xl font-bold">2</p></div>
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800"><p class="text-xs text-slate-500 uppercase mb-1">GPS</p><p class="text-4xl font-bold">1</p></div>
+            <div class="bg-red-500/5 p-6 rounded-2xl border border-red-900/20"><p class="text-xs text-red-500 uppercase mb-1">Anomalies</p><p class="text-4xl font-bold text-red-500">2</p></div>
+        </div>
+
+        <div class="flex space-x-10 mb-8 border-b border-slate-800">
+            <button onclick="switchTab('tab-logs')" id="btn-logs" class="tab-btn pb-4 border-b-2 border-blue-500 text-blue-500 font-bold">Logs</button>
+            <button onclick="switchTab('tab-gps')" id="btn-gps" class="tab-btn pb-4 text-slate-500 hover:text-white transition">GPS Map</button>
+            <button onclick="switchTab('tab-ai')" id="btn-ai" class="tab-btn pb-4 text-slate-500 hover:text-white transition">AI Report</button>
+        </div>
+
+        <div id="tab-logs" class="tab-content">
+            <div class="bg-slate-900/50 rounded-2xl border border-slate-800 overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-800/50 text-slate-400 text-xs uppercase tracking-wider">
+                        <tr>
+                            <th class="p-4">Time</th>
+                            <th class="p-4">Type</th>
+                            <th class="p-4">Info</th>
+                            <th class="p-4">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for event in events %}
+                        <tr class="hover:bg-slate-800/30 transition">
+                            <td class="p-4 text-sm font-mono text-slate-400">{{ event.event_time }}</td>
+                            <td class="p-4">
+                                <span class="px-2 py-1 rounded bg-blue-900/40 text-blue-400 text-[10px] font-bold uppercase">
+                                    {{ event.event_type }}
+                                </span>
+                            </td>
+                            <td class="p-4 text-sm font-medium">{{ event.main_info }}</td>
+                            <td class="p-4 text-sm italic text-slate-500">{{ event.extra_details }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if not events %}
+                        <tr><td colspan="4" class="p-10 text-center text-slate-600">No logs found. Run your migration script first.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="tab-gps" class="tab-content hidden">
+            <div id="map"></div>
+        </div>
+
+        <div id="tab-ai" class="tab-content hidden">
+            <div class="bg-blue-600/10 border border-blue-500/20 p-8 rounded-2xl">
+                <h3 class="text-blue-400 font-bold mb-4 uppercase text-xs tracking-widest text-white">Gemini Intelligence Summary</h3>
+                <p class="text-slate-300 leading-relaxed text-lg">
+                    Suspicious pattern detected: Search for "untraceable phones" followed by coordination with "Shady Dealer".
+                    Final GPS location recorded at Cubbon Park (12.9757, 77.5971) at 23:00:05.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let map;
+        function switchTab(id) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('border-b-2', 'border-blue-500', 'text-blue-500');
+                b.classList.add('text-slate-500');
+            });
+            event.currentTarget.classList.add('border-b-2', 'border-blue-500', 'text-blue-500');
+
+            if(id === 'tab-gps' && !map) {
+                setTimeout(() => {
+                    map = L.map('map').setView([12.9757, 77.5971], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                    L.marker([12.9757, 77.5971]).addTo(map).bindPopup('<b>Final GPS Point</b><br>Cubbon Park Area').openPopup();
+                }, 100);
+            }
+        }
+    </script>
+</body>
+</html>
