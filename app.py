@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 # 1. Setup Gemini Client
-client = genai.Client(api_key="AIzaSyAHkABGLqJ6javK3-iIgUfkl4HCTW4DeOo")
+client = genai.Client(api_key="Your_API_KEY")
 
 # 2. Database Connection
 def get_db_connection():
@@ -57,4 +57,5 @@ def analyze():
 
 if __name__ == '__main__':
     print("--- FORENSIC SERVER ACTIVE: http://127.0.0.1:5000 ---")
+
     app.run(port=5000, debug=True)
