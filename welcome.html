@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SECURE LOGIN - UFDR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* SCANNER ANIMATION */
+        @keyframes scan { 0% {top: 0%} 50% {top: 100%} 100% {top: 0%} }
+        .scan-line {
+            position: absolute; width: 100%; height: 4px;
+            background: #3b82f6; top: 0; left: 0;
+            box-shadow: 0 0 20px #3b82f6;
+            animation: scan 2.5s infinite linear;
+        }
+        .grid-bg {
+            background-color: #0b1120;
+            background-image: linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col items-center justify-center text-blue-400 font-mono grid-bg">
+
+    <div class="mb-10 text-center z-20">
+        <h1 class="text-4xl font-bold tracking-[0.3em] text-white drop-shadow-md">RESTRICTED ACCESS</h1>
+        <p class="text-xs text-blue-300 uppercase mt-2">Bio-Auth Required</p>
+    </div>
+
+    <div class="relative w-[380px] h-[380px] rounded-full border-4 border-blue-600 overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.3)] z-10">
+        
+        <video id="video" class="w-full h-full object-cover scale-x-[-1]" autoplay muted playsinline></video>
+
+        <div id="scan-overlay" class="absolute inset-0 pointer-events-none hidden bg-blue-500/10">
+            <div class="scan-line"></div>
+        </div>
+    </div>
+
+    <div id="status" class="mt-8 text-xl font-bold tracking-widest text-blue-500 animate-pulse z-20">
+        CONNECTING TO CAMERA...
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const status = document.getElementById('status');
+        const overlay = document.getElementById('scan-overlay');
+
+        // FORCE CAMERA START
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                
+                // Explicitly tell video to play
+                video.onloadedmetadata = () => {
+                    video.play();
+                    startSequence();
+                };
+            } catch (err) {
+                console.error(err);
+                status.innerText = "CAMERA ERROR: " + err.name;
+                status.classList.add('text-red-500');
+            }
+        }
+
+        function startSequence() {
+            // Sequence starts only when video is ready
+            setTimeout(() => {
+                status.innerText = "SCANNING...";
+                overlay.classList.remove('hidden');
+            }, 1000);
+
+            setTimeout(() => {
+                status.innerText = "ACCESS GRANTED";
+                status.classList.replace('text-blue-500', 'text-white');
+                status.classList.remove('animate-pulse');
+                video.pause();
+            }, 4000);
+
+            setTimeout(() => {
+                window.location.href = "/upload_page";
+            }, 5000);
+        }
+
+        // Run immediately
+        startCamera();
+    </script>
+</body>
+</html>
