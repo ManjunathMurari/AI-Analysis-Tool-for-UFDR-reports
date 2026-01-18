@@ -38,6 +38,13 @@ This solution leverages **Google Technologies** across its security and intellig
 
 ---
 
+## 🚀 Hybrid AI Architecture
+
+**Hybrid AI Architecture:** Combines **Google's GenAI** (cloud-based powerful models) with **Gemma 2B** (local, privacy-preserving inference via Ollama) to handle both high-complexity analysis and sensitive, offline-capable workflows. This dual-model approach ensures:
+- High-complexity cases leverage Google's powerful cloud models for advanced reasoning
+- Sensitive investigations use local Gemma 2B for complete data privacy and offline capability
+- Seamless fallback mechanisms for reliability and redundancy
+
 ## 🏗️ Architecture & Tech Stack
 
 ### Architecture Diagram
