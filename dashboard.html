@@ -58,6 +58,7 @@
         >
       </div>
 
+
       <div class="grid grid-cols-4 gap-6 mb-10">
         <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
           <p class="text-xs text-slate-500 uppercase mb-1">Total Logs</p>
@@ -76,6 +77,7 @@
           <p class="text-4xl font-bold text-red-500">HIGH</p>
         </div>
       </div>
+
 
       <div class="flex space-x-10 mb-8 border-b border-slate-800">
         <button
@@ -100,6 +102,7 @@
           AI Analysis
         </button>
       </div>
+
 
       <div id="tab-logs" class="tab-content">
         <div
@@ -150,13 +153,17 @@
         </div>
       </div>
 
+
       <div id="tab-gps" class="tab-content hidden">
         <div id="map"></div>
       </div>
 
+
+      <!-- AI ANALYSIS TAB (UPDATED) -->
       <div id="tab-ai" class="tab-content hidden">
+        <!-- 1. Report Card -->
         <div
-          class="bg-blue-600/10 border border-blue-500/20 p-8 rounded-2xl min-h-[300px] flex flex-col justify-center"
+          class="bg-blue-600/10 border border-blue-500/20 p-8 rounded-2xl min-h-[300px] flex flex-col justify-center mb-8"
         >
           <div id="ai-loading" class="hidden text-center">
             <div
@@ -166,6 +173,7 @@
               Consulting Gemini Engine...
             </p>
           </div>
+
 
           <div id="ai-result">
             <div class="text-center text-slate-500">
@@ -181,11 +189,38 @@
             </div>
           </div>
         </div>
+
+        <!-- 2. NEW Chat Interface -->
+        <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 hidden" id="chat-section">
+            <h5 class="text-white font-bold mb-4 flex items-center gap-2">
+                <span class="text-xl">💬</span> Cross-Examine Evidence
+            </h5>
+            
+            <!-- Chat Window -->
+            <div id="chat-history" class="h-64 overflow-y-auto bg-black/40 p-4 rounded-xl border border-slate-800 mb-4 space-y-3">
+                <div class="text-center text-xs text-slate-600 italic">
+                    Evidence loaded into memory. You can now ask questions about specific times, people, or events.
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="flex gap-2">
+                <input type="text" id="user-query" 
+                    class="w-full bg-slate-800 text-white px-4 py-3 rounded-xl border border-slate-700 focus:outline-none focus:border-blue-500 transition" 
+                    placeholder="Ex: What is the exact timestamp of the threat?">
+                <button onclick="askAI()" 
+                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 rounded-xl transition whitespace-nowrap">
+                    Ask AI
+                </button>
+            </div>
+        </div>
       </div>
     </div>
 
+
     <script>
       let map;
+
 
       function switchTab(id) {
         // Hide all tabs
@@ -195,11 +230,13 @@
         // Show selected tab
         document.getElementById(id).classList.remove("hidden");
 
+
         // Reset button styles
         document.querySelectorAll(".tab-btn").forEach((b) => {
           b.classList.remove("border-b-2", "border-blue-500", "text-blue-500");
           b.classList.add("text-slate-500");
         });
+
 
         // Highlight active button
         const activeBtn = document.getElementById(
@@ -214,34 +251,83 @@
           );
         }
 
-        // Initialize Map if opening GPS tab for first time
+
+                // Initialize Map if opening GPS tab for first time
         if (id === "tab-gps" && !map) {
           setTimeout(() => {
-            // Default to Cubbon Park coordinates
-            map = L.map("map").setView([12.9757, 77.5971], 15);
+            map = L.map("map").setView([12.9757, 77.5971], 12);
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
               attribution: "&copy; OpenStreetMap contributors",
             }).addTo(map);
-            L.marker([12.9757, 77.5971])
-              .addTo(map)
-              .bindPopup("<b>Suspicious Location</b><br>Cubbon Park Area")
-              .openPopup();
+
+            // --- DYNAMIC MARKER LOGIC ---
+            const rows = document.querySelectorAll(".log-row");
+            let markerCount = 0;
+            let bounds = [];
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll("td");
+                if (cells.length < 4) return; 
+
+                const typeSpan = cells[1].querySelector("span");
+                const type = typeSpan ? typeSpan.innerText.trim() : "";
+                const info = cells[2].innerText.trim();
+                const details = cells[3].innerText.trim();
+
+                if (type === "GPS" && info.startsWith("Coords:")) {
+                    try {
+                        const rawCoords = info.replace("Coords:", "").trim();
+                        const parts = rawCoords.split(",");
+                        
+                        if (parts.length === 2) {
+                            const lat = parseFloat(parts[0].trim());
+                            const lng = parseFloat(parts[1].trim());
+
+                            if (!isNaN(lat) && !isNaN(lng)) {
+                                L.marker([lat, lng])
+                                    .addTo(map)
+                                    .bindPopup(`<b>${details}</b>`);
+                                markerCount++;
+                                bounds.push([lat, lng]);
+                            }
+                        }
+                    } catch (err) { console.log(err); }
+                }
+            });
+
+            if (markerCount > 0) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            } else {
+                 L.marker([12.9757, 77.5971])
+                  .addTo(map)
+                  .bindPopup("<b>Default Location</b><br>No GPS data found.")
+                  .openPopup();
+            }
+
           }, 100);
         }
+
+
       }
+
 
       async function runAnalysis() {
         const loading = document.getElementById("ai-loading");
         const resultDiv = document.getElementById("ai-result");
+        const chatSection = document.getElementById("chat-section");
+
 
         loading.classList.remove("hidden");
         resultDiv.classList.add("hidden");
+        chatSection.classList.add("hidden");
+
 
         // Gather all logs from the table to send as context
         let logData = "";
         document.querySelectorAll(".log-row").forEach((row) => {
           logData += row.innerText + "\n";
         });
+
 
         try {
           const response = await fetch("/analyze", {
@@ -250,14 +336,18 @@
             body: JSON.stringify({ content: logData }),
           });
 
+
           const data = await response.json();
+
 
           // Render the response using Marked.js
           loading.classList.add("hidden");
           resultDiv.classList.remove("hidden");
+          chatSection.classList.remove("hidden"); // Reveal chat box on success
+
 
           resultDiv.innerHTML = `
-                    <h3 class="text-blue-400 font-bold mb-4 uppercase text-xs tracking-widest text-white">Gemini Intelligence Summary</h3>
+                    <h3 class="text-blue-400 font-bold mb-4 uppercase text-xs tracking-widest">Gemini Intelligence Summary</h3>
                     <div class="prose text-slate-300 leading-relaxed text-lg">
                         ${marked.parse(data.summary)}
                     </div>
@@ -268,6 +358,55 @@
           resultDiv.innerHTML = `<p class="text-red-500">Connection Error: ${error.message}</p>`;
         }
       }
+
+      // --- NEW CHAT FUNCTIONALITY ---
+      async function askAI() {
+        const input = document.getElementById('user-query');
+        const history = document.getElementById('chat-history');
+        const question = input.value;
+        
+        if (!question) return;
+
+        // 1. Show User Question
+        history.innerHTML += `
+            <div class="flex justify-end">
+                <span class="bg-slate-800 text-blue-400 px-4 py-2 rounded-t-xl rounded-bl-xl text-sm border border-slate-700">
+                    <strong>You:</strong> ${question}
+                </span>
+            </div>`;
+        
+        input.value = '';
+        history.scrollTop = history.scrollHeight;
+
+        // 2. Call Backend
+        try {
+            const response = await fetch('/chat_evidence', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: question })
+            });
+            
+            const data = await response.json();
+
+            // 3. Show AI Answer
+            history.innerHTML += `
+                <div class="flex justify-start">
+                    <span class="bg-blue-900/20 text-green-400 px-4 py-2 rounded-t-xl rounded-br-xl text-sm border border-blue-500/20">
+                        <strong>ForenX:</strong> ${data.answer}
+                    </span>
+                </div>`;
+                
+        } catch (err) {
+            history.innerHTML += `<div class="text-center text-red-500 text-xs">Error: System Offline</div>`;
+        }
+        
+        history.scrollTop = history.scrollHeight;
+      }
+
+      // Enter key to send
+      document.getElementById("user-query").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") askAI();
+      });
     </script>
   </body>
 </html>
