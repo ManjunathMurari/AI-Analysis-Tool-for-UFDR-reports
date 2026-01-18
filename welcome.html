@@ -4,47 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ForenX - Secure Login</title>
+    
+    <!-- 1. Load Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Load Face API (REMOVE 'defer' to force load before body) -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
     <style>
+        /* ... your existing styles ... */
         body { background-color: #050505; color: white; overflow: hidden; }
-        
-        /* THE COOL GRID BACKGROUND */
         .grid-bg {
             background-color: #0b1120;
             background-image: linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
             linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
             background-size: 40px 40px;
         }
-
+        /* ... keep the rest of your CSS ... */
         .scan-line {
             position: absolute; top: 0; left: 0; width: 100%; height: 4px;
             background: cyan; box-shadow: 0 0 10px cyan;
             animation: scan 2s infinite linear; display: none;
+            z-index: 20;
         }
         @keyframes scan {
             0% { top: 0%; opacity: 0; }
             50% { opacity: 1; }
             100% { top: 100%; opacity: 0; }
         }
-        
-        /* HUD CORNERS */
-        .hud-corner { position: absolute; width: 20px; height: 20px; border: 2px solid cyan; }
+        .hud-corner { position: absolute; width: 20px; height: 20px; border: 2px solid cyan; z-index: 20; }
         .top-left { top: 0; left: 0; border-right: 0; border-bottom: 0; }
         .top-right { top: 0; right: 0; border-left: 0; border-bottom: 0; }
         .bottom-left { bottom: 0; left: 0; border-right: 0; border-top: 0; }
         .bottom-right { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 15; }
     </style>
 </head>
+
 <body class="flex flex-col items-center justify-center h-screen grid-bg">
 
     <div class="text-center mb-8 z-10">
         <h1 class="text-4xl font-bold tracking-[0.5em] text-cyan-400 drop-shadow-lg">RESTRICTED ACCESS</h1>
-        <p class="text-xs text-slate-400 uppercase mt-2 tracking-widest">BIOMETRIC AUTHENTICATION REQUIRED</p>
+        <p id="system-status" class="text-xs text-slate-400 uppercase mt-2 tracking-widest animate-pulse">LOADING NEURAL MODELS...</p>
     </div>
 
     <!-- Camera Container -->
-    <div class="relative w-[400px] h-[300px] bg-slate-900 rounded-lg overflow-hidden border border-slate-700 shadow-[0_0_50px_rgba(6,182,212,0.15)] z-10">
-        <video id="webcam" autoplay playsinline class="w-full h-full object-cover opacity-60 scale-x-[-1]"></video>
+    <div class="relative w-[640px] h-[480px] bg-slate-900 rounded-lg overflow-hidden border border-slate-700 shadow-[0_0_50px_rgba(6,182,212,0.15)] z-10" id="cam-box">
+        <video id="video" width="640" height="480" autoplay muted playsinline class="w-full h-full object-cover opacity-60"></video>
+        <canvas id="overlay"></canvas>
         
         <!-- HUD Overlay -->
         <div class="absolute inset-0 p-4 pointer-events-none">
@@ -65,57 +72,129 @@
         </div>
 
         <!-- Status Text -->
-        <div class="absolute bottom-4 left-0 w-full text-center">
-            <p id="status-text" class="text-xs font-mono text-cyan-500">WAITING FOR USER...</p>
+        <div class="absolute bottom-4 left-0 w-full text-center z-30">
+            <p id="action-text" class="text-xs font-mono text-cyan-500 bg-black/50 inline-block px-2">INITIALIZING...</p>
         </div>
     </div>
 
     <!-- Manual Trigger -->
-    <button id="auth-btn" onclick="startScan()" class="mt-8 px-8 py-3 bg-cyan-950/50 border border-cyan-500/50 text-cyan-400 rounded hover:bg-cyan-500 hover:text-black transition uppercase text-xs tracking-widest disabled:opacity-50 disabled:cursor-not-allowed z-10">
-        Initiate Scan
+    <button id="auth-btn" onclick="startScan()" disabled 
+        class="mt-8 px-8 py-3 bg-cyan-950/50 border border-cyan-500/50 text-cyan-400 rounded hover:bg-cyan-500 hover:text-black transition uppercase text-xs tracking-widest disabled:opacity-50 disabled:cursor-not-allowed z-10">
+        Wait for AI...
     </button>
 
     <script>
-        const video = document.getElementById('webcam');
-        const status = document.getElementById('status-text');
+        const video = document.getElementById('video');
+        const overlay = document.getElementById('overlay');
+        const statusLabel = document.getElementById('system-status');
+        const actionLabel = document.getElementById('action-text');
         const scanner = document.getElementById('scanner');
         const btn = document.getElementById('auth-btn');
+        const camBox = document.getElementById('cam-box');
 
-        // 1. Start Camera
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
+        let labeledDescriptors;
+        let faceMatcher;
+
+        // 1. Load Models from LOCAL Folder
+        Promise.all([
+            faceapi.nets.ssdMobilenetv1.loadFromUri('/static/models'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('/static/models'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('/static/models')
+        ]).then(startCamera);
+
+        async function startCamera() {
+            actionLabel.innerText = "LOADING REFERENCE DATA...";
+            
+            try {
+                // 2. Load Your Reference Image
+                // NOTE: Using 'reference.jpeg' based on your folder structure
+                const refImage = await faceapi.fetchImage('/static/reference.jpeg');
+                const refDetection = await faceapi.detectSingleFace(refImage).withFaceLandmarks().withFaceDescriptor();
+
+                if (!refDetection) {
+                    throw new Error("Reference image face not found.");
+                }
+
+                labeledDescriptors = new faceapi.LabeledFaceDescriptors('Agent Suhas', [refDetection.descriptor]);
+                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+
+                // 3. Start Webcam
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
                 video.srcObject = stream;
-                status.innerText = "CAMERA ACTIVE. ALIGN FACE.";
-                video.classList.remove('opacity-60');
-            })
-            .catch(err => {
-                status.innerText = "CAMERA ACCESS DENIED.";
-                status.classList.add('text-red-500');
-            });
+                video.classList.remove('opacity-60'); // Brighten video
 
-        // 2. Mock Scanning Logic
-        function startScan() {
+                statusLabel.innerText = "BIOMETRIC SYSTEM ONLINE";
+                statusLabel.classList.remove('animate-pulse');
+                actionLabel.innerText = "READY. ALIGN FACE.";
+                btn.innerText = "INITIATE SCAN";
+                btn.disabled = false;
+
+            } catch (err) {
+                console.error(err);
+                statusLabel.innerText = "SYSTEM ERROR";
+                actionLabel.innerText = "ERROR: " + err.message;
+                actionLabel.classList.add('text-red-500');
+            }
+        }
+
+        async function startScan() {
             btn.disabled = true;
             btn.innerText = "AUTHENTICATING...";
-            scanner.style.display = 'block'; 
-            status.innerText = "SCANNING BIOMETRICS...";
+            scanner.style.display = 'block'; // Show laser
+            actionLabel.innerText = "SCANNING BIOMETRICS...";
+
+            // Detect Face
+            const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+
+            if (!detection) {
+                actionLabel.innerText = "NO FACE DETECTED.";
+                scanner.style.display = 'none';
+                btn.disabled = false;
+                btn.innerText = "RETRY SCAN";
+                return;
+            }
+
+            // Compare
+            const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
             
-            // Step 1: Scanning (2.5 seconds)
-            setTimeout(() => {
-                status.innerText = "ACCESS GRANTED: AGENT M.R. SUHAS";
-                status.classList.remove('text-cyan-500');
-                status.classList.add('text-green-400', 'font-bold');
+            // Draw Box
+            const dims = faceapi.matchDimensions(overlay, video);
+            const resizedDetections = faceapi.resizeResults(detection, dims);
+            const box = resizedDetections.detection.box;
+            const drawBox = new faceapi.draw.DrawBox(box, { label: bestMatch.toString() });
+            drawBox.draw(overlay);
+
+            if (bestMatch.label === 'Agent Suhas') {
+                // SUCCESS
+                actionLabel.innerText = "ACCESS GRANTED: AGENT SUHAS";
+                actionLabel.classList.remove('text-cyan-500');
+                actionLabel.classList.add('text-green-400', 'font-bold');
                 
-                scanner.style.background = '#4ade80'; // Green scan line
+                scanner.style.background = '#4ade80'; 
                 scanner.style.boxShadow = '0 0 10px #4ade80';
-                
-                document.querySelector('.relative').style.borderColor = '#4ade80'; // Border turns green
-                
-                // Step 2: Redirect (1 second later)
+                camBox.style.borderColor = '#4ade80';
+
                 setTimeout(() => {
                     window.location.href = "/upload_page";
                 }, 1500);
-            }, 2500);
+            } else {
+                // FAIL
+                actionLabel.innerText = "ACCESS DENIED: UNKNOWN USER";
+                actionLabel.classList.add('text-red-500');
+                camBox.style.borderColor = '#ef4444';
+                
+                setTimeout(() => {
+                    // Reset
+                    const ctx = overlay.getContext('2d');
+                    ctx.clearRect(0, 0, overlay.width, overlay.height);
+                    actionLabel.innerText = "READY. TRY AGAIN.";
+                    actionLabel.classList.remove('text-red-500');
+                    camBox.style.borderColor = '#334155';
+                    scanner.style.display = 'none';
+                    btn.disabled = false;
+                    btn.innerText = "INITIATE SCAN";
+                }, 2000);
+            }
         }
     </script>
 </body>
