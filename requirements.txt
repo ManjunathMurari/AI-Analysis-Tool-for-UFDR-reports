@@ -1,6 +1,7 @@
 Flask==3.1.2
 flask-cors==6.0.2
-ollama==0.6.1
+ollama==0.6.1  - 3rd Party Host for AI models
+gemma:2b - Google AI technology
 google-genai==1.56.0
 google-auth==2.47.0
 mysql-connector-python==9.5.0
@@ -13,3 +14,4 @@ click==8.3.1
 httpcore==1.0.9
 httpx==0.28.1
 typing_extensions==4.15.0
+
