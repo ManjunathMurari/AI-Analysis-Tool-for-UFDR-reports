@@ -88,7 +88,7 @@ This solution leverages **Google Technologies** across its security and intellig
     ```bash
     python app.py
     ```
-
+Note : We have utilised the reference.jpeg image as the real agent that drives the face recognition to demonstrate the prospect of facial recognition and its satisfying working
 ---
 
 ## ⚠️ Credits & Acknowledgments
